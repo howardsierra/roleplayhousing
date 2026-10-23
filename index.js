@@ -415,79 +415,205 @@ function mergeCardHomes(existing, incoming) {
 // ---------------------------------------------------------------------------
 // Editor popup
 
+const OWNER_ICON = { char: 'fa-masks-theater', user: 'fa-user', shared: 'fa-people-roof' };
+
+const ARRANGEMENT_OPTIONS = [
+    { value: 'separate', icon: 'fa-house-user', label: 'Live apart' },
+    { value: 'together', icon: 'fa-people-roof', label: 'Live together' },
+    { value: 'unspecified', icon: 'fa-circle-question', label: 'Unspecified' },
+];
+
+const ROOM_ICONS = [
+    [/kitchen|pantry|galley/i, 'fa-utensils'],
+    [/dining/i, 'fa-bowl-food'],
+    [/bed(room)?|sleep|loft|nursery|chamber|quarters/i, 'fa-bed'],
+    [/bath|shower|toilet|wash|lavatory|restroom|privy/i, 'fa-bath'],
+    [/living|lounge|sitting|den|family|parlou?r/i, 'fa-couch'],
+    [/office|study|library|den|workspace/i, 'fa-book-open'],
+    [/garden|yard|greenhouse|grove|glade|courtyard/i, 'fa-seedling'],
+    [/garage|carport|stable|barn|shed/i, 'fa-warehouse'],
+    [/porch|balcony|terrace|patio|deck|roof/i, 'fa-sun'],
+    [/laundry|utility/i, 'fa-shirt'],
+    [/hall|entry|foyer|vestibule|corridor|stair/i, 'fa-door-open'],
+    [/basement|cellar|attic|storage|closet/i, 'fa-box-archive'],
+    [/gym|training|dojo/i, 'fa-dumbbell'],
+    [/studio|workshop|forge|lab/i, 'fa-screwdriver-wrench'],
+    [/pool|spring|hot tub|sauna/i, 'fa-water-ladder'],
+];
+
+function roomIcon(name) {
+    return ROOM_ICONS.find(([pattern]) => pattern.test(name))?.[1] ?? 'fa-door-closed';
+}
+
 const SOURCE_BADGE = {
-    card: '<span class="rph-badge rph-badge-card" title="Filled from the character card">from card</span>',
-    generated: '<span class="rph-badge rph-badge-gen" title="Designed by the model">generated</span>',
+    card: '<span class="rph-badge rph-badge-card" title="Filled in from the character card or persona"><i class="fa-solid fa-id-card"></i>from card</span>',
+    generated: '<span class="rph-badge rph-badge-gen" title="Designed by the model"><i class="fa-solid fa-wand-magic-sparkles"></i>generated</span>',
     manual: '',
 };
 
-function renderHomeCard(home) {
+function homeMeta(home) {
+    const bits = [ownerLabel(home.owner)];
+    if (home.type) bits.push(home.type);
+    if (home.location) bits.push(home.location);
+    return bits.join(' · ');
+}
+
+function homeStats(home) {
+    const stats = [];
+    if (home.rooms.length) stats.push(`<span><i class="fa-solid fa-door-open"></i>${home.rooms.length}</span>`);
+    if (home.amenities.length) stats.push(`<span><i class="fa-solid fa-star"></i>${home.amenities.length}</span>`);
+    return stats.join('');
+}
+
+function renderAvatar(url, owner, label) {
+    const fallback = `<div class="rph-avatar rph-avatar-fallback rph-tone-${owner}" title="${escapeHtml(label)}"><i class="fa-solid ${OWNER_ICON[owner]}"></i></div>`;
+    if (!url) return fallback;
+    return `<img class="rph-avatar rph-tone-${owner}" src="${escapeHtml(url)}" alt="" title="${escapeHtml(label)}" onerror="this.replaceWith(Object.assign(document.createElement('div'), { className: 'rph-avatar rph-avatar-fallback rph-tone-${owner}', innerHTML: '<i class=&quot;fa-solid ${OWNER_ICON[owner]}&quot;></i>' }))" />`;
+}
+
+function renderHomeCard(home, ui) {
+    const collapsed = ui.collapsed.has(home.id);
+    const busy = ui.busy.has(home.id);
     const rooms = home.rooms.map((room, i) => `
         <div class="rph-room" data-index="${i}">
+            <div class="rph-room-icon"><i class="fa-solid ${roomIcon(room.name)}"></i></div>
             <input class="text_pole rph-room-name" placeholder="Room" value="${escapeHtml(room.name)}" />
-            <input class="text_pole rph-room-details" placeholder="Details" value="${escapeHtml(room.details)}" />
-            <div class="menu_button menu_button_icon rph-room-remove" title="Remove room"><i class="fa-solid fa-xmark"></i></div>
+            <input class="text_pole rph-room-details" placeholder="What's in it, how it looks…" value="${escapeHtml(room.details)}" />
+            <button type="button" class="rph-icon-btn rph-room-remove" title="Remove room"><i class="fa-solid fa-xmark"></i></button>
         </div>`).join('');
 
+    const chips = home.amenities.map((amenity, i) => `
+        <span class="rph-chip" data-index="${i}">${escapeHtml(amenity)}<button type="button" class="rph-chip-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>`).join('');
+
     return `
-    <div class="rph-home" data-id="${escapeHtml(home.id)}">
-        <div class="rph-home-header">
-            <select class="text_pole rph-owner">
-                ${OWNERS.map(o => `<option value="${o}" ${o === home.owner ? 'selected' : ''}>${escapeHtml(ownerLabel(o))}</option>`).join('')}
-            </select>
-            ${SOURCE_BADGE[home.source] ?? ''}
-            <div class="menu_button menu_button_icon rph-home-remove" title="Delete this home"><i class="fa-solid fa-trash-can"></i></div>
-        </div>
-        <div class="rph-grid">
-            <label>Name<input class="text_pole rph-field" data-field="name" placeholder="e.g. The Harbor Street Apartment" value="${escapeHtml(home.name)}" /></label>
-            <label>Type<input class="text_pole rph-field" data-field="type" placeholder="e.g. cramped studio, castle, dorm room" value="${escapeHtml(home.type)}" /></label>
-            <label class="rph-span">Location<input class="text_pole rph-field" data-field="location" placeholder="City, neighbourhood, world location…" value="${escapeHtml(home.location)}" /></label>
-            <label class="rph-span">Description<textarea class="text_pole rph-field" data-field="description" rows="3" placeholder="Look, atmosphere, condition…">${escapeHtml(home.description)}</textarea></label>
-        </div>
-        <div class="rph-section-title">Layout</div>
-        <div class="rph-rooms">${rooms || '<div class="rph-empty">No rooms yet.</div>'}</div>
-        <div class="menu_button menu_button_icon rph-room-add"><i class="fa-solid fa-plus"></i><span>Add room</span></div>
-        <label>Amenities <small>(comma or newline separated)</small>
-            <textarea class="text_pole rph-amenities" rows="2" placeholder="washer/dryer, rooftop access, fireplace…">${escapeHtml(home.amenities.join(', '))}</textarea>
-        </label>
-        <label>Notes<textarea class="text_pole rph-field" data-field="notes" rows="2" placeholder="Rent, ownership, neighbours, quirks…">${escapeHtml(home.notes)}</textarea></label>
-        <div class="rph-generate">
-            <input class="text_pole rph-brief" placeholder="Describe it in a sentence, e.g. 'a cozy rundown farmhouse with a big porch'" />
-            <div class="menu_button menu_button_icon rph-generate-btn" title="Let the model fill in layout and amenities (keeps what you've written)">
-                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Flesh out</span>
+    <section class="rph-home rph-tone-${home.owner}${collapsed ? ' rph-collapsed' : ''}${busy ? ' rph-busy' : ''}" data-id="${escapeHtml(home.id)}">
+        <header class="rph-home-head">
+            <div class="rph-home-icon"><i class="fa-solid ${OWNER_ICON[home.owner]}"></i></div>
+            <div class="rph-home-title">
+                <div class="rph-home-name">${escapeHtml(home.name || 'Untitled home')}</div>
+                <div class="rph-home-meta">${escapeHtml(homeMeta(home))}</div>
             </div>
+            <div class="rph-home-stats">${homeStats(home)}</div>
+            ${SOURCE_BADGE[home.source] ?? ''}
+            <button type="button" class="rph-icon-btn rph-home-remove" title="Delete this home"><i class="fa-solid fa-trash-can"></i></button>
+            <button type="button" class="rph-icon-btn rph-home-toggle" title="${collapsed ? 'Expand' : 'Collapse'}"><i class="fa-solid fa-chevron-down"></i></button>
+        </header>
+        <div class="rph-home-body">
+            <div class="rph-grid">
+                <label class="rph-field-wrap">
+                    <span class="rph-label">Belongs to</span>
+                    <select class="text_pole rph-owner">
+                        ${OWNERS.map(o => `<option value="${o}" ${o === home.owner ? 'selected' : ''}>${escapeHtml(ownerLabel(o))}</option>`).join('')}
+                    </select>
+                </label>
+                <label class="rph-field-wrap">
+                    <span class="rph-label">Name</span>
+                    <input class="text_pole rph-field" data-field="name" placeholder="The Harbor Street Apartment" value="${escapeHtml(home.name)}" />
+                </label>
+                <label class="rph-field-wrap">
+                    <span class="rph-label">Type</span>
+                    <input class="text_pole rph-field" data-field="type" placeholder="Cramped studio, castle, dorm room…" value="${escapeHtml(home.type)}" />
+                </label>
+                <label class="rph-field-wrap">
+                    <span class="rph-label">Location</span>
+                    <input class="text_pole rph-field" data-field="location" placeholder="City, neighbourhood, world location…" value="${escapeHtml(home.location)}" />
+                </label>
+                <label class="rph-field-wrap rph-span">
+                    <span class="rph-label">Description</span>
+                    <textarea class="text_pole rph-field" data-field="description" rows="3" placeholder="How it looks and feels, what condition it's in…">${escapeHtml(home.description)}</textarea>
+                </label>
+            </div>
+
+            <div class="rph-subhead"><i class="fa-solid fa-table-cells-large"></i>Layout</div>
+            <div class="rph-rooms">${rooms || '<div class="rph-hint">No rooms yet. Add them yourself or use <b>Flesh out</b> below.</div>'}</div>
+            <button type="button" class="rph-ghost-btn rph-room-add"><i class="fa-solid fa-plus"></i>Add room</button>
+
+            <div class="rph-subhead"><i class="fa-solid fa-star"></i>Amenities</div>
+            <div class="rph-chips">
+                ${chips}
+                <input class="rph-chip-input" placeholder="${home.amenities.length ? 'Add more…' : 'Fireplace, rooftop access, washer/dryer…'}" title="Press Enter or comma to add" />
+            </div>
+
+            <label class="rph-field-wrap">
+                <span class="rph-subhead"><i class="fa-solid fa-note-sticky"></i>Notes</span>
+                <textarea class="text_pole rph-field" data-field="notes" rows="2" placeholder="Rent, ownership, neighbours, quirks…">${escapeHtml(home.notes)}</textarea>
+            </label>
+
+            <div class="rph-magic">
+                <i class="fa-solid fa-wand-magic-sparkles rph-magic-icon"></i>
+                <input class="rph-brief" placeholder="Describe it in a sentence, e.g. “a cozy rundown farmhouse with a big porch”" />
+                <button type="button" class="menu_button rph-generate-btn" title="Let the model add layout and amenities. Nothing you've written is replaced.">Flesh out</button>
+            </div>
+        </div>
+        <div class="rph-busy-overlay"><i class="fa-solid fa-spinner fa-spin-pulse"></i><span>Designing the home…</span></div>
+    </section>`;
+}
+
+function renderEmpty() {
+    return `
+    <div class="rph-empty-state">
+        <div class="rph-empty-icon"><i class="fa-solid fa-house-chimney-window"></i></div>
+        <div class="rph-empty-title">No housing yet</div>
+        <div class="rph-empty-text">Read it from ${escapeHtml(charName())}'s card, or add a home and describe it yourself.</div>
+        <div class="rph-empty-actions">
+            <button type="button" class="menu_button rph-detect"><i class="fa-solid fa-id-card"></i>Read from card</button>
+            <button type="button" class="menu_button rph-add" data-owner="char"><i class="fa-solid fa-plus"></i>${escapeHtml(charName())}'s home</button>
+            <button type="button" class="menu_button rph-add" data-owner="user"><i class="fa-solid fa-plus"></i>${escapeHtml(userName())}'s home</button>
         </div>
     </div>`;
 }
 
-function renderEditor(state) {
+function renderEditor(state, ui) {
+    const arrangement = ARRANGEMENT_OPTIONS.map(o => `
+        <button type="button" class="rph-seg${state.arrangement === o.value ? ' rph-seg-active' : ''}" data-value="${o.value}">
+            <i class="fa-solid ${o.icon}"></i><span>${o.label}</span>
+        </button>`).join('');
+
     return `
     <div class="rph-editor">
-        <h3><i class="fa-solid fa-house-chimney"></i> Housing — ${escapeHtml(charName())} &amp; ${escapeHtml(userName())}</h3>
-        <div class="rph-toolbar">
-            <label>Living arrangement
-                <select class="text_pole rph-arrangement">
-                    <option value="unspecified" ${state.arrangement === 'unspecified' ? 'selected' : ''}>Unspecified</option>
-                    <option value="separate" ${state.arrangement === 'separate' ? 'selected' : ''}>Live separately</option>
-                    <option value="together" ${state.arrangement === 'together' ? 'selected' : ''}>Live together</option>
-                </select>
-            </label>
-            <div class="rph-toolbar-buttons">
-                <div class="menu_button menu_button_icon rph-add" data-owner="char"><i class="fa-solid fa-plus"></i><span>${escapeHtml(charName())}'s home</span></div>
-                <div class="menu_button menu_button_icon rph-add" data-owner="user"><i class="fa-solid fa-plus"></i><span>${escapeHtml(userName())}'s home</span></div>
-                <div class="menu_button menu_button_icon rph-add" data-owner="shared"><i class="fa-solid fa-plus"></i><span>Shared home</span></div>
-                <div class="menu_button menu_button_icon rph-detect" title="Read the character card and persona for housing"><i class="fa-solid fa-id-card"></i><span>Read from card</span></div>
+        <div class="rph-hero">
+            <div class="rph-avatars">
+                ${renderAvatar(ui.charAvatar, 'char', charName())}
+                <div class="rph-avatar-link"><i class="fa-solid ${state.arrangement === 'together' ? 'fa-house-chimney' : state.arrangement === 'separate' ? 'fa-arrows-left-right' : 'fa-ellipsis'}"></i></div>
+                ${renderAvatar(ui.userAvatar, 'user', userName())}
+            </div>
+            <div class="rph-hero-text">
+                <div class="rph-title">Housing</div>
+                <div class="rph-subtitle">Where <b>${escapeHtml(charName())}</b> and <b>${escapeHtml(userName())}</b> live · saved to this chat</div>
             </div>
         </div>
-        <div class="rph-homes">
-            ${state.homes.length ? state.homes.map(renderHomeCard).join('') : '<div class="rph-empty">No housing yet. Add a home above, or read it from the character card.</div>'}
+
+        <div class="rph-bar">
+            <div class="rph-segmented" role="radiogroup" aria-label="Living arrangement">${arrangement}</div>
+            <div class="rph-bar-actions">
+                <button type="button" class="rph-ghost-btn rph-add" data-owner="char"><i class="fa-solid fa-plus"></i>${escapeHtml(charName())}</button>
+                <button type="button" class="rph-ghost-btn rph-add" data-owner="user"><i class="fa-solid fa-plus"></i>${escapeHtml(userName())}</button>
+                <button type="button" class="rph-ghost-btn rph-add" data-owner="shared"><i class="fa-solid fa-plus"></i>Shared</button>
+                <button type="button" class="rph-ghost-btn rph-detect" title="Read the character card and persona for housing"><i class="fa-solid fa-id-card"></i>Read card</button>
+            </div>
         </div>
-        <label>Other housing notes<textarea class="text_pole rph-notes" rows="2" placeholder="Anything else the model should know (e.g. they are house-hunting, visiting each other's places…)">${escapeHtml(state.notes)}</textarea></label>
-        <details class="rph-preview">
-            <summary>Preview what gets sent to the model</summary>
+
+        <div class="rph-homes">${state.homes.length ? state.homes.map(h => renderHomeCard(h, ui)).join('') : renderEmpty()}</div>
+
+        <label class="rph-field-wrap rph-notes-wrap">
+            <span class="rph-subhead"><i class="fa-solid fa-map-location-dot"></i>Other housing notes</span>
+            <textarea class="text_pole rph-notes" rows="2" placeholder="Anything else the model should know: they're house-hunting, one of them is crashing on the other's couch…">${escapeHtml(state.notes)}</textarea>
+        </label>
+
+        <details class="rph-preview"${ui.previewOpen ? ' open' : ''}>
+            <summary><i class="fa-solid fa-eye"></i>What the model sees <span class="rph-preview-size"></span></summary>
             <pre class="rph-preview-text"></pre>
         </details>
     </div>`;
+}
+
+async function personaAvatarUrl() {
+    try {
+        const { user_avatar } = await import('/scripts/personas.js');
+        return user_avatar ? ctx().getThumbnailUrl('persona', user_avatar) : '';
+    } catch {
+        return '';
+    }
 }
 
 async function openEditor() {
@@ -498,84 +624,173 @@ async function openEditor() {
     }
 
     let state = structuredClone(getHousing());
+    const character = context.characters?.[context.characterId];
+    const ui = {
+        collapsed: new Set(),
+        busy: new Set(),
+        previewOpen: false,
+        charAvatar: character?.avatar && character.avatar !== 'none' ? context.getThumbnailUrl('avatar', character.avatar) : '',
+        userAvatar: await personaAvatarUrl(),
+    };
     const root = $('<div class="rph-root"></div>');
 
-    const findHome = el => state.homes.find(h => h.id === $(el).closest('.rph-home').data('id'));
-    const refreshPreview = () => root.find('.rph-preview-text').text(buildHousingText(state) || '(nothing — housing is empty)');
+    const cardOf = el => $(el).closest('.rph-home');
+    const findHome = el => state.homes.find(h => h.id === cardOf(el).data('id'));
+    const refreshPreview = () => {
+        const text = buildHousingText(state);
+        root.find('.rph-preview-text').text(text || '(nothing yet — housing is empty)');
+        root.find('.rph-preview-size').text(text ? `≈ ${Math.ceil(text.length / 4)} tokens` : '');
+    };
+    const refreshHead = el => {
+        const home = findHome(el);
+        if (!home) return;
+        const card = cardOf(el);
+        card.find('.rph-home-name').text(home.name || 'Untitled home');
+        card.find('.rph-home-meta').text(homeMeta(home));
+        card.find('.rph-home-stats').html(homeStats(home));
+    };
     const rerender = () => {
-        root.html(renderEditor(state));
+        const scroll = root.closest('.popup-content').scrollTop();
+        root.html(renderEditor(state, ui));
+        refreshPreview();
+        root.closest('.popup-content').scrollTop(scroll);
+    };
+    // Adds chips in place (no rerender) so typing and focus are never interrupted.
+    const addAmenities = input => {
+        const home = findHome(input);
+        const items = normalizeList(input.value).filter(item => !home?.amenities.includes(item));
+        input.value = '';
+        if (!home || !items.length) return;
+        for (const item of items) {
+            home.amenities.push(item);
+            $(input).before(`<span class="rph-chip" data-index="${home.amenities.length - 1}">${escapeHtml(item)}<button type="button" class="rph-chip-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>`);
+        }
+        input.placeholder = 'Add more…';
+        refreshHead(input);
         refreshPreview();
     };
 
-    root.on('input change', '.rph-arrangement', e => { state.arrangement = e.target.value; refreshPreview(); });
+    root.on('click', '.rph-seg', e => { state.arrangement = e.currentTarget.dataset.value; rerender(); });
     root.on('input', '.rph-notes', e => { state.notes = e.target.value; refreshPreview(); });
+    root.on('toggle', '.rph-preview', e => { ui.previewOpen = e.currentTarget.open; });
     root.on('input', '.rph-field', e => {
         const home = findHome(e.target);
         if (home) home[e.target.dataset.field] = e.target.value;
-        refreshPreview();
-    });
-    root.on('input', '.rph-amenities', e => {
-        const home = findHome(e.target);
-        if (home) home.amenities = normalizeList(e.target.value);
+        refreshHead(e.target);
         refreshPreview();
     });
     root.on('change', '.rph-owner', e => {
         const home = findHome(e.target);
         if (home) home.owner = e.target.value;
-        refreshPreview();
+        rerender();
+    });
+    root.on('click', '.rph-home-head', e => {
+        if ($(e.target).closest('.rph-home-remove').length) return;
+        const id = cardOf(e.currentTarget).data('id');
+        if (ui.collapsed.has(id)) ui.collapsed.delete(id); else ui.collapsed.add(id);
+        cardOf(e.currentTarget).toggleClass('rph-collapsed', ui.collapsed.has(id));
     });
     root.on('input', '.rph-room-name, .rph-room-details', e => {
         const home = findHome(e.target);
-        const index = Number($(e.target).closest('.rph-room').data('index'));
+        const row = $(e.target).closest('.rph-room');
+        const index = Number(row.data('index'));
         if (!home?.rooms[index]) return;
-        home.rooms[index][$(e.target).hasClass('rph-room-name') ? 'name' : 'details'] = e.target.value;
+        const isName = $(e.target).hasClass('rph-room-name');
+        home.rooms[index][isName ? 'name' : 'details'] = e.target.value;
+        if (isName) row.find('.rph-room-icon i').attr('class', `fa-solid ${roomIcon(e.target.value)}`);
         refreshPreview();
     });
+    root.on('change', '.rph-room-name', e => refreshHead(e.target));
     root.on('click', '.rph-room-add', e => {
-        findHome(e.currentTarget)?.rooms.push({ name: '', details: '' });
+        const home = findHome(e.currentTarget);
+        if (!home) return;
+        home.rooms.push({ name: '', details: '' });
         rerender();
+        root.find(`.rph-home[data-id="${home.id}"] .rph-room-name`).last().trigger('focus');
     });
     root.on('click', '.rph-room-remove', e => {
-        const home = findHome(e.currentTarget);
-        home?.rooms.splice(Number($(e.currentTarget).closest('.rph-room').data('index')), 1);
+        findHome(e.currentTarget)?.rooms.splice(Number($(e.currentTarget).closest('.rph-room').data('index')), 1);
+        rerender();
+    });
+    root.on('click', '.rph-chips', e => {
+        if (e.target === e.currentTarget) $(e.currentTarget).find('.rph-chip-input').trigger('focus');
+    });
+    root.on('keydown', '.rph-chip-input', e => {
+        const input = e.currentTarget;
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addAmenities(input);
+        } else if (e.key === 'Backspace' && !input.value) {
+            const home = findHome(input);
+            if (!home?.amenities.length) return;
+            home.amenities.pop();
+            $(input).prev('.rph-chip').remove();
+            refreshHead(input);
+            refreshPreview();
+        }
+    });
+    root.on('blur', '.rph-chip-input', e => addAmenities(e.currentTarget));
+    root.on('click', '.rph-chip-remove', e => {
+        findHome(e.currentTarget)?.amenities.splice(Number($(e.currentTarget).closest('.rph-chip').data('index')), 1);
         rerender();
     });
     root.on('click', '.rph-add', e => {
-        state.homes.push(emptyHome(e.currentTarget.dataset.owner));
-        if (e.currentTarget.dataset.owner === 'shared') state.arrangement = 'together';
+        const home = emptyHome(e.currentTarget.dataset.owner);
+        state.homes.push(home);
+        if (home.owner === 'shared') state.arrangement = 'together';
         rerender();
+        const card = root.find(`.rph-home[data-id="${home.id}"]`);
+        card[0]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        card.find('[data-field=name]').trigger('focus');
     });
-    root.on('click', '.rph-home-remove', e => {
+    root.on('click', '.rph-home-remove', async e => {
+        e.stopPropagation();
         const home = findHome(e.currentTarget);
+        if (!home) return;
+        const hasContent = home.name || home.description || home.rooms.length || home.amenities.length;
+        if (hasContent) {
+            const confirmed = await ctx().callGenericPopup(`Delete <b>${escapeHtml(home.name || ownerLabel(home.owner))}</b>?`, ctx().POPUP_TYPE.CONFIRM);
+            if (confirmed !== ctx().POPUP_RESULT.AFFIRMATIVE) return;
+        }
         state.homes = state.homes.filter(h => h !== home);
         rerender();
     });
-    root.on('click', '.rph-detect', async () => {
-        const result = await detectFromCard();
-        if (!result) return;
-        if (!result.homes.length) {
-            toastr.info('No housing found in the card or persona.', 'Roleplay Housing');
-            return;
+    root.on('click', '.rph-detect', async e => {
+        const button = $(e.currentTarget).addClass('rph-loading');
+        try {
+            const result = await detectFromCard();
+            if (!result) return;
+            if (!result.homes.length) {
+                toastr.info('No housing found in the card or persona.', 'Roleplay Housing');
+                return;
+            }
+            state.homes = mergeCardHomes(state.homes, result.homes);
+            if (result.arrangement !== 'unspecified') state.arrangement = result.arrangement;
+            state.checked = true;
+            rerender();
+            toastr.success(`Found ${result.homes.length} home(s). Review and save.`, 'Roleplay Housing');
+        } finally {
+            button.removeClass('rph-loading');
         }
-        state.homes = mergeCardHomes(state.homes, result.homes);
-        if (result.arrangement !== 'unspecified') state.arrangement = result.arrangement;
-        state.checked = true;
-        rerender();
-        toastr.success(`Found ${result.homes.length} home(s). Review and save.`, 'Roleplay Housing');
+    });
+    root.on('keydown', '.rph-brief', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $(e.currentTarget).closest('.rph-magic').find('.rph-generate-btn').trigger('click');
+        }
     });
     root.on('click', '.rph-generate-btn', async e => {
         const home = findHome(e.currentTarget);
-        if (!home) return;
-        const brief = $(e.currentTarget).closest('.rph-generate').find('.rph-brief').val();
-        const button = $(e.currentTarget).addClass('disabled');
+        if (!home || ui.busy.has(home.id)) return;
+        const brief = String(cardOf(e.currentTarget).find('.rph-brief').val() ?? '').trim();
+        ui.busy.add(home.id);
+        cardOf(e.currentTarget).addClass('rph-busy');
         try {
-            const result = await generateHome(normalizeHome(home), String(brief ?? '').trim());
-            if (result) {
-                state.homes = state.homes.map(h => (h.id === home.id ? result : h));
-                rerender();
-            }
+            const result = await generateHome(normalizeHome(home), brief);
+            if (result) state.homes = state.homes.map(h => (h.id === home.id ? result : h));
         } finally {
-            button.removeClass('disabled');
+            ui.busy.delete(home.id);
+            rerender();
         }
     });
 
@@ -618,13 +833,19 @@ function bindSettings() {
         $('#rph_template').val(cur.template);
         $('#rph_include_rooms').prop('checked', cur.includeRooms);
         $('#rph_response_length').val(cur.responseLength);
+        syncDepthState();
+    };
+    // Depth and role only matter when injecting into the chat history.
+    const syncDepthState = () => {
+        const inChat = Number(settings().position) === 1;
+        $('#rph_depth, #rph_role').prop('disabled', !inChat).closest('div').css('opacity', inChat ? '' : '0.5');
     };
     load();
 
     $('#rph_open').on('click', () => openEditor());
     $('#rph_enabled').on('change', e => { settings().enabled = e.target.checked; save(); });
     $('#rph_auto_detect').on('change', e => { settings().autoDetect = e.target.value; save(); });
-    $('#rph_position').on('change', e => { settings().position = Number(e.target.value); save(); });
+    $('#rph_position').on('change', e => { settings().position = Number(e.target.value); syncDepthState(); save(); });
     $('#rph_depth').on('input', e => { settings().depth = Math.max(0, Number(e.target.value) || 0); save(); });
     $('#rph_role').on('change', e => { settings().role = Number(e.target.value); save(); });
     $('#rph_template').on('input', e => { settings().template = e.target.value; save(); });
