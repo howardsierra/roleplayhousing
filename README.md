@@ -13,6 +13,8 @@ Inspired by [ST-Estate](https://github.com/Nufahi/ST-Estate). Estate builds lore
 - **Living arrangement.** Choose whether they live together, live separately, or leave it unspecified.
 - **Prompt injection** with a configurable position, depth, role and template. A live preview shows exactly what is sent.
 - Saved **per chat**, so different stories with the same character can have different homes.
+- **Works on phones.** Controls are finger-sized, and text fields don't zoom on iOS. On narrow screens rooms stack into cards, and the add buttons scroll sideways in one row.
+- **Touch-friendly editing.** Drag a room by its icon to reorder it. Tap an amenity tag to edit it. Commas split amenities into tags as you type. Enter moves from a room's name to its details, and on the last room it adds a new one.
 
 ## Install
 

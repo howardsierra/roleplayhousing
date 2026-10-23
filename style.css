@@ -20,6 +20,7 @@
 .rph-root {
     text-align: left;
     color: var(--rph-text);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .rph-editor {
@@ -140,9 +141,11 @@
     transition: background-color 0.15s, color 0.15s;
 }
 
-.rph-seg:hover {
-    color: var(--rph-text) !important;
-    background: var(--rph-faint);
+@media (hover: hover) {
+    .rph-seg:hover {
+        color: var(--rph-text) !important;
+        background: var(--rph-faint);
+    }
 }
 
 .rph-seg-active,
@@ -172,10 +175,12 @@
     transition: background-color 0.15s, border-color 0.15s;
 }
 
-.rph-ghost-btn:hover {
-    border-style: solid;
-    border-color: color-mix(in srgb, var(--rph-accent) 60%, transparent);
-    background: var(--rph-surface-2);
+@media (hover: hover) {
+    .rph-ghost-btn:hover {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--rph-accent) 60%, transparent);
+        background: var(--rph-surface-2);
+    }
 }
 
 .rph-ghost-btn i {
@@ -306,13 +311,17 @@
     transition: background-color 0.15s, color 0.15s, transform 0.2s;
 }
 
-.rph-icon-btn:hover {
-    background: var(--rph-faint);
-    color: var(--rph-text) !important;
+@media (hover: hover) {
+    .rph-icon-btn:hover {
+        background: var(--rph-faint);
+        color: var(--rph-text) !important;
+    }
 }
 
-.rph-home-remove:hover {
-    color: #e5645c !important;
+@media (hover: hover) {
+    .rph-home-remove:hover {
+        color: #e5645c !important;
+    }
 }
 
 .rph-home-toggle i {
@@ -408,13 +417,24 @@
 .rph-room {
     display: grid;
     grid-template-columns: 30px minmax(140px, 1.3fr) 3fr 30px;
+    grid-template-areas: "handle name details remove";
     gap: 6px;
     align-items: center;
+    border-radius: 10px;
+    transition: box-shadow 0.15s, background-color 0.15s;
 }
 
+.rph-room-handle { grid-area: handle; }
+.rph-room-name { grid-area: name; }
+.rph-room-details { grid-area: details; }
+.rph-room-remove { grid-area: remove; }
+
 .rph-room-icon {
+    position: relative;
     width: 30px;
     height: 30px;
+    cursor: grab;
+    touch-action: none;
     display: grid;
     place-items: center;
     border-radius: 8px;
@@ -425,6 +445,32 @@
 
 .rph-room-name {
     font-weight: 600;
+}
+
+.rph-grip {
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    font-size: 0.6em;
+    opacity: 0;
+    color: var(--rph-muted);
+    transition: opacity 0.15s;
+}
+
+.rph-room:hover .rph-grip,
+.rph-dragging .rph-grip {
+    opacity: 1;
+}
+
+.rph-dragging {
+    position: relative;
+    z-index: 2;
+    background: var(--SmartThemeBlurTintColor, #222);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rph-tone) 60%, transparent), 0 10px 24px var(--SmartThemeShadowColor, rgba(0, 0, 0, 0.5));
+}
+
+.rph-dragging .rph-room-icon {
+    cursor: grabbing;
 }
 
 .rph-room-add {
@@ -449,6 +495,10 @@
 .rph-chips:focus-within {
     border-color: color-mix(in srgb, var(--rph-tone) 70%, transparent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--rph-tone) 18%, transparent);
+}
+
+.rph-chip-label {
+    cursor: pointer;
 }
 
 .rph-chip {
@@ -477,9 +527,11 @@
     cursor: pointer;
 }
 
-.rph-chip-remove:hover {
-    opacity: 1;
-    background: var(--rph-faint);
+@media (hover: hover) {
+    .rph-chip-remove:hover {
+        opacity: 1;
+        background: var(--rph-faint);
+    }
 }
 
 .rph-chip-input {
@@ -643,8 +695,10 @@
     display: none;
 }
 
-.rph-preview summary:hover {
-    color: var(--rph-text);
+@media (hover: hover) {
+    .rph-preview summary:hover {
+        color: var(--rph-text);
+    }
 }
 
 .rph-preview-size {
@@ -654,6 +708,7 @@
 }
 
 .rph-preview pre {
+    overscroll-behavior: contain;
     margin: 0;
     padding: 12px 14px;
     max-height: 320px;
@@ -751,6 +806,129 @@
     font-size: 0.85em;
 }
 
+
+/* ---------- Press feedback ---------- */
+
+.rph-seg,
+.rph-ghost-btn,
+.rph-icon-btn,
+.rph-chip-remove,
+.rph-generate-btn,
+.rph-empty-actions .menu_button,
+.rph-home-head {
+    transition: transform 0.1s, background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.rph-seg:active,
+.rph-ghost-btn:active,
+.rph-icon-btn:active,
+.rph-chip-remove:active,
+.rph-generate-btn:active,
+.rph-empty-actions .menu_button:active {
+    transform: scale(0.94);
+}
+
+.rph-home-head:active {
+    background: var(--rph-faint);
+}
+
+.rph-root :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--rph-tone) 80%, transparent);
+    outline-offset: 2px;
+}
+
+/* ---------- Touch screens ---------- */
+
+@media (pointer: coarse) {
+    /* 16px stops iOS zooming into fields; 44px is a comfortable finger target. */
+    .rph-root .text_pole,
+    .rph-chip-input,
+    .rph-brief,
+    .rph-settings .text_pole {
+        font-size: 16px;
+    }
+
+    .rph-root input.text_pole,
+    .rph-root select.text_pole,
+    .rph-settings input.text_pole,
+    .rph-settings select.text_pole {
+        min-height: 44px;
+    }
+
+    .rph-icon-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.05em;
+    }
+
+    .rph-seg {
+        padding: 10px 14px;
+    }
+
+    .rph-ghost-btn {
+        min-height: 44px;
+        padding: 10px 15px;
+    }
+
+    .rph-room {
+        grid-template-columns: 44px minmax(120px, 1.3fr) 3fr 44px;
+    }
+
+    .rph-room-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        font-size: 1em;
+    }
+
+    .rph-grip {
+        opacity: 0.7;
+        right: 2px;
+        bottom: 2px;
+    }
+
+    .rph-chip {
+        padding: 4px 4px 4px 12px;
+        font-size: 0.95em;
+    }
+
+    .rph-chip-label {
+        padding: 4px 0;
+    }
+
+    .rph-chip-remove {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85em;
+        opacity: 0.75;
+    }
+
+    .rph-chip-input {
+        min-height: 36px;
+    }
+
+    .rph-magic {
+        padding: 6px 6px 6px 14px;
+    }
+
+    .rph-generate-btn {
+        min-height: 40px;
+    }
+
+    .rph-preview summary {
+        padding: 14px;
+    }
+
+    .rph-settings-open {
+        padding: 12px !important;
+    }
+
+    .rph-settings .checkbox_label {
+        min-height: 36px;
+        align-items: center;
+    }
+}
+
 /* ---------- Motion & small screens ---------- */
 
 @keyframes rph-in {
@@ -790,12 +968,66 @@
         width: 100%;
     }
 
+    .rph-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    /* Add buttons scroll sideways in one row instead of wrapping. */
+    .rph-bar-actions {
+        min-width: 0;
+        max-width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-x: contain;
+        margin: 0 -2px;
+        padding: 0 2px;
+        mask-image: linear-gradient(90deg, #000 85%, transparent);
+    }
+
+    .rph-bar-actions::-webkit-scrollbar {
+        display: none;
+    }
+
+    .rph-bar-actions > * {
+        scroll-snap-align: start;
+        flex-shrink: 0;
+    }
+
+    .rph-bar-actions > :last-child {
+        margin-right: 24px;
+    }
+
+    .rph-home-head {
+        gap: 10px;
+        padding: 10px 6px 10px 12px;
+    }
+
+    .rph-home-body {
+        padding: 2px 12px 14px 14px;
+    }
+
+    .rph-empty-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .rph-empty-actions .menu_button {
+        justify-content: center;
+        padding: 12px;
+    }
+
     .rph-seg {
         flex: 1;
         justify-content: center;
         gap: 4px;
         padding: 6px 2px;
         min-width: 0;
+        min-height: 40px;
         font-size: 0.82em;
         white-space: nowrap;
     }
@@ -813,12 +1045,25 @@
         display: none;
     }
 
-    .rph-room {
-        grid-template-columns: 30px 1fr 30px;
+    /* Each room becomes a small card: icon, name and remove on top, details underneath. */
+    .rph-room,
+    .rph-dragging {
+        grid-template-columns: 44px 1fr 44px;
+        grid-template-areas:
+            "handle name remove"
+            "details details details";
+        padding: 6px;
+        border: 1px solid var(--rph-border);
+        background: var(--rph-surface);
     }
 
-    .rph-room-details {
-        grid-column: 2 / 3;
+    .rph-dragging {
+        background: var(--SmartThemeBlurTintColor, #222);
+    }
+
+    .rph-room-icon {
+        width: 44px;
+        height: 44px;
     }
 
     .rph-magic {

@@ -471,23 +471,26 @@ function renderAvatar(url, owner, label) {
     return `<img class="rph-avatar rph-tone-${owner}" src="${escapeHtml(url)}" alt="" title="${escapeHtml(label)}" onerror="this.replaceWith(Object.assign(document.createElement('div'), { className: 'rph-avatar rph-avatar-fallback rph-tone-${owner}', innerHTML: '<i class=&quot;fa-solid ${OWNER_ICON[owner]}&quot;></i>' }))" />`;
 }
 
+function chipHtml(amenity, index) {
+    return `<span class="rph-chip" data-index="${index}"><span class="rph-chip-label" role="button" tabindex="0" title="Tap to edit">${escapeHtml(amenity)}</span><button type="button" class="rph-chip-remove" title="Remove" aria-label="Remove ${escapeHtml(amenity)}"><i class="fa-solid fa-xmark"></i></button></span>`;
+}
+
 function renderHomeCard(home, ui) {
     const collapsed = ui.collapsed.has(home.id);
     const busy = ui.busy.has(home.id);
     const rooms = home.rooms.map((room, i) => `
         <div class="rph-room" data-index="${i}">
-            <div class="rph-room-icon"><i class="fa-solid ${roomIcon(room.name)}"></i></div>
-            <input class="text_pole rph-room-name" placeholder="Room" value="${escapeHtml(room.name)}" />
-            <input class="text_pole rph-room-details" placeholder="What's in it, how it looks…" value="${escapeHtml(room.details)}" />
-            <button type="button" class="rph-icon-btn rph-room-remove" title="Remove room"><i class="fa-solid fa-xmark"></i></button>
+            <div class="rph-room-icon rph-room-handle" title="Drag to reorder" aria-label="Drag to reorder ${escapeHtml(room.name || 'room')}"><i class="fa-solid ${roomIcon(room.name)}"></i><i class="fa-solid fa-grip-vertical rph-grip"></i></div>
+            <input class="text_pole rph-room-name" placeholder="Room" aria-label="Room name" enterkeyhint="next" autocapitalize="words" value="${escapeHtml(room.name)}" />
+            <input class="text_pole rph-room-details" placeholder="What's in it, how it looks…" aria-label="Room details" enterkeyhint="next" value="${escapeHtml(room.details)}" />
+            <button type="button" class="rph-icon-btn rph-room-remove" title="Remove room" aria-label="Remove ${escapeHtml(room.name || 'room')}"><i class="fa-solid fa-xmark"></i></button>
         </div>`).join('');
 
-    const chips = home.amenities.map((amenity, i) => `
-        <span class="rph-chip" data-index="${i}">${escapeHtml(amenity)}<button type="button" class="rph-chip-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>`).join('');
+    const chips = home.amenities.map(chipHtml).join('');
 
     return `
     <section class="rph-home rph-tone-${home.owner}${collapsed ? ' rph-collapsed' : ''}${busy ? ' rph-busy' : ''}" data-id="${escapeHtml(home.id)}">
-        <header class="rph-home-head">
+        <header class="rph-home-head" role="button" tabindex="0" aria-expanded="${!collapsed}">
             <div class="rph-home-icon"><i class="fa-solid ${OWNER_ICON[home.owner]}"></i></div>
             <div class="rph-home-title">
                 <div class="rph-home-name">${escapeHtml(home.name || 'Untitled home')}</div>
@@ -495,8 +498,8 @@ function renderHomeCard(home, ui) {
             </div>
             <div class="rph-home-stats">${homeStats(home)}</div>
             ${SOURCE_BADGE[home.source] ?? ''}
-            <button type="button" class="rph-icon-btn rph-home-remove" title="Delete this home"><i class="fa-solid fa-trash-can"></i></button>
-            <button type="button" class="rph-icon-btn rph-home-toggle" title="${collapsed ? 'Expand' : 'Collapse'}"><i class="fa-solid fa-chevron-down"></i></button>
+            <button type="button" class="rph-icon-btn rph-home-remove" title="Delete this home" aria-label="Delete this home"><i class="fa-solid fa-trash-can"></i></button>
+            <button type="button" class="rph-icon-btn rph-home-toggle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></button>
         </header>
         <div class="rph-home-body">
             <div class="rph-grid">
@@ -508,7 +511,7 @@ function renderHomeCard(home, ui) {
                 </label>
                 <label class="rph-field-wrap">
                     <span class="rph-label">Name</span>
-                    <input class="text_pole rph-field" data-field="name" placeholder="The Harbor Street Apartment" value="${escapeHtml(home.name)}" />
+                    <input class="text_pole rph-field" data-field="name" autocapitalize="words" placeholder="The Harbor Street Apartment" value="${escapeHtml(home.name)}" />
                 </label>
                 <label class="rph-field-wrap">
                     <span class="rph-label">Type</span>
@@ -516,7 +519,7 @@ function renderHomeCard(home, ui) {
                 </label>
                 <label class="rph-field-wrap">
                     <span class="rph-label">Location</span>
-                    <input class="text_pole rph-field" data-field="location" placeholder="City, neighbourhood, world location…" value="${escapeHtml(home.location)}" />
+                    <input class="text_pole rph-field" data-field="location" autocapitalize="words" placeholder="City, neighbourhood, world location…" value="${escapeHtml(home.location)}" />
                 </label>
                 <label class="rph-field-wrap rph-span">
                     <span class="rph-label">Description</span>
@@ -531,7 +534,7 @@ function renderHomeCard(home, ui) {
             <div class="rph-subhead"><i class="fa-solid fa-star"></i>Amenities</div>
             <div class="rph-chips">
                 ${chips}
-                <input class="rph-chip-input" placeholder="${home.amenities.length ? 'Add more…' : 'Fireplace, rooftop access, washer/dryer…'}" title="Press Enter or comma to add" />
+                <input class="rph-chip-input" aria-label="Add amenity" enterkeyhint="enter" autocomplete="off" placeholder="${home.amenities.length ? 'Add more…' : 'Fireplace, rooftop access, washer/dryer…'}" title="Press Enter or comma to add" />
             </div>
 
             <label class="rph-field-wrap">
@@ -541,7 +544,7 @@ function renderHomeCard(home, ui) {
 
             <div class="rph-magic">
                 <i class="fa-solid fa-wand-magic-sparkles rph-magic-icon"></i>
-                <input class="rph-brief" placeholder="Describe it in a sentence, e.g. “a cozy rundown farmhouse with a big porch”" />
+                <input class="rph-brief" aria-label="Describe this home" enterkeyhint="go" placeholder="Describe it in a sentence, e.g. “a cozy rundown farmhouse with a big porch”" />
                 <button type="button" class="menu_button rph-generate-btn" title="Let the model add layout and amenities. Nothing you've written is replaced.">Flesh out</button>
             </div>
         </div>
@@ -607,6 +610,14 @@ function renderEditor(state, ui) {
     </div>`;
 }
 
+function isNarrow() {
+    return window.matchMedia('(max-width: 600px)').matches;
+}
+
+function isTouch() {
+    return window.matchMedia('(pointer: coarse)').matches;
+}
+
 async function personaAvatarUrl() {
     try {
         const { user_avatar } = await import('/scripts/personas.js');
@@ -632,6 +643,7 @@ async function openEditor() {
         charAvatar: character?.avatar && character.avatar !== 'none' ? context.getThumbnailUrl('avatar', character.avatar) : '',
         userAvatar: await personaAvatarUrl(),
     };
+    if (isNarrow() && state.homes.length > 1) state.homes.slice(1).forEach(h => ui.collapsed.add(h.id));
     const root = $('<div class="rph-root"></div>');
 
     const cardOf = el => $(el).closest('.rph-home');
@@ -663,7 +675,7 @@ async function openEditor() {
         if (!home || !items.length) return;
         for (const item of items) {
             home.amenities.push(item);
-            $(input).before(`<span class="rph-chip" data-index="${home.amenities.length - 1}">${escapeHtml(item)}<button type="button" class="rph-chip-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>`);
+            $(input).before(chipHtml(item, home.amenities.length - 1));
         }
         input.placeholder = 'Add more…';
         refreshHead(input);
@@ -689,6 +701,13 @@ async function openEditor() {
         const id = cardOf(e.currentTarget).data('id');
         if (ui.collapsed.has(id)) ui.collapsed.delete(id); else ui.collapsed.add(id);
         cardOf(e.currentTarget).toggleClass('rph-collapsed', ui.collapsed.has(id));
+        $(e.currentTarget).attr('aria-expanded', String(!ui.collapsed.has(id)));
+    });
+    root.on('keydown', '.rph-home-head', e => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            $(e.currentTarget).trigger('click');
+        }
     });
     root.on('input', '.rph-room-name, .rph-room-details', e => {
         const home = findHome(e.target);
@@ -701,6 +720,72 @@ async function openEditor() {
         refreshPreview();
     });
     root.on('change', '.rph-room-name', e => refreshHead(e.target));
+    root.on('keydown', '.rph-room-name, .rph-room-details', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const row = $(e.target).closest('.rph-room');
+        if ($(e.target).hasClass('rph-room-name')) {
+            row.find('.rph-room-details').trigger('focus');
+        } else if (row.next('.rph-room').length) {
+            row.next('.rph-room').find('.rph-room-name').trigger('focus');
+        } else {
+            cardOf(e.target).find('.rph-room-add').trigger('click');
+        }
+    });
+
+    // Drag rooms by their icon. Pointer events cover mouse, pen and touch alike.
+    root.on('pointerdown', '.rph-room-handle', e => {
+        const event = e.originalEvent;
+        if (event.button !== 0) return;
+        const handle = e.currentTarget;
+        const row = handle.closest('.rph-room');
+        const list = row.parentElement;
+        const scroller = root.closest('.popup-content')[0];
+        const home = findHome(handle);
+        if (!home) return;
+        event.preventDefault();
+        handle.setPointerCapture(event.pointerId);
+        const from = Number(row.dataset.index);
+        row.classList.add('rph-dragging');
+        navigator.vibrate?.(8);
+
+        // Neighbours are moved around the dragged row (never the row itself), so pointer capture is kept.
+        const mid = el => {
+            const b = el.getBoundingClientRect();
+            return b.top + b.height / 2;
+        };
+        const move = ev => {
+            if (scroller) {
+                const box = scroller.getBoundingClientRect();
+                if (ev.clientY < box.top + 50) scroller.scrollTop -= 12;
+                else if (ev.clientY > box.bottom - 50) scroller.scrollTop += 12;
+            }
+            let prev = row.previousElementSibling;
+            while (prev?.classList.contains('rph-room') && ev.clientY < mid(prev)) {
+                list.insertBefore(prev, row.nextElementSibling);
+                prev = row.previousElementSibling;
+            }
+            let next = row.nextElementSibling;
+            while (next?.classList.contains('rph-room') && ev.clientY > mid(next)) {
+                list.insertBefore(next, row);
+                next = row.nextElementSibling;
+            }
+        };
+        const end = () => {
+            handle.removeEventListener('pointermove', move);
+            handle.removeEventListener('pointerup', end);
+            handle.removeEventListener('pointercancel', end);
+            row.classList.remove('rph-dragging');
+            const to = [...list.querySelectorAll('.rph-room')].indexOf(row);
+            if (to === from) return;
+            const [moved] = home.rooms.splice(from, 1);
+            home.rooms.splice(to, 0, moved);
+            rerender();
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+    });
     root.on('click', '.rph-room-add', e => {
         const home = findHome(e.currentTarget);
         if (!home) return;
@@ -729,7 +814,31 @@ async function openEditor() {
             refreshPreview();
         }
     });
+    root.on('input', '.rph-chip-input', e => {
+        const input = e.currentTarget;
+        if (!input.value.includes(',')) return;
+        const parts = input.value.split(',');
+        const rest = parts.pop();
+        input.value = parts.join(',');
+        addAmenities(input);
+        input.value = rest.trimStart();
+    });
     root.on('blur', '.rph-chip-input', e => addAmenities(e.currentTarget));
+    root.on('click keydown', '.rph-chip-label', e => {
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        const home = findHome(e.currentTarget);
+        const chip = $(e.currentTarget).closest('.rph-chip');
+        const pending = chip.siblings('.rph-chip-input')[0];
+        if (!home || !pending) return;
+        if (pending.value.trim()) addAmenities(pending);
+        const [text] = home.amenities.splice(Number(chip.data('index')), 1);
+        rerender();
+        const input = root.find(`.rph-home[data-id="${home.id}"] .rph-chip-input`)[0];
+        input.value = text ?? '';
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
     root.on('click', '.rph-chip-remove', e => {
         findHome(e.currentTarget)?.amenities.splice(Number($(e.currentTarget).closest('.rph-chip').data('index')), 1);
         rerender();
@@ -793,6 +902,12 @@ async function openEditor() {
             rerender();
         }
     });
+
+    if (isTouch()) {
+        root.on('focusin', 'input, textarea', e => {
+            setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+        });
+    }
 
     rerender();
 
