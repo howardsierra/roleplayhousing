@@ -482,7 +482,7 @@ function renderHomeCard(home, ui) {
         <div class="rph-room" data-index="${i}">
             <div class="rph-room-icon rph-room-handle" title="Drag to reorder" aria-label="Drag to reorder ${escapeHtml(room.name || 'room')}"><i class="fa-solid ${roomIcon(room.name)}"></i><i class="fa-solid fa-grip-vertical rph-grip"></i></div>
             <input class="text_pole rph-room-name" placeholder="Room" aria-label="Room name" enterkeyhint="next" autocapitalize="words" value="${escapeHtml(room.name)}" />
-            <input class="text_pole rph-room-details" placeholder="What's in it, how it looks…" aria-label="Room details" enterkeyhint="next" value="${escapeHtml(room.details)}" />
+            <textarea class="text_pole rph-room-details" rows="1" placeholder="What's in it, how it looks…" aria-label="Room details" enterkeyhint="next">${escapeHtml(room.details)}</textarea>
             <button type="button" class="rph-icon-btn rph-room-remove" title="Remove room" aria-label="Remove ${escapeHtml(room.name || 'room')}"><i class="fa-solid fa-xmark"></i></button>
         </div>`).join('');
 
@@ -498,7 +498,6 @@ function renderHomeCard(home, ui) {
             </div>
             <div class="rph-home-stats">${homeStats(home)}</div>
             ${SOURCE_BADGE[home.source] ?? ''}
-            <button type="button" class="rph-icon-btn rph-home-remove" title="Delete this home" aria-label="Delete this home"><i class="fa-solid fa-trash-can"></i></button>
             <button type="button" class="rph-icon-btn rph-home-toggle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></button>
         </header>
         <div class="rph-home-body">
@@ -547,6 +546,11 @@ function renderHomeCard(home, ui) {
                 <input class="rph-brief" aria-label="Describe this home" enterkeyhint="go" placeholder="Describe it in a sentence, e.g. “a cozy rundown farmhouse with a big porch”" />
                 <button type="button" class="menu_button rph-generate-btn" title="Let the model add layout and amenities. Nothing you've written is replaced.">Flesh out</button>
             </div>
+
+            <div class="rph-home-foot">
+                <span class="rph-foot-hint">${home.source === 'card' ? 'Imported from the card. Edit anything.' : home.source === 'generated' ? 'Designed by the model. Edit anything.' : ''}</span>
+                <button type="button" class="rph-danger-btn rph-home-remove"><i class="fa-solid fa-trash-can"></i>Delete home</button>
+            </div>
         </div>
         <div class="rph-busy-overlay"><i class="fa-solid fa-spinner fa-spin-pulse"></i><span>Designing the home…</span></div>
     </section>`;
@@ -582,7 +586,7 @@ function renderEditor(state, ui) {
             </div>
             <div class="rph-hero-text">
                 <div class="rph-title">Housing</div>
-                <div class="rph-subtitle">Where <b>${escapeHtml(charName())}</b> and <b>${escapeHtml(userName())}</b> live · saved to this chat</div>
+                <div class="rph-subtitle">Where <b>${escapeHtml(charName())}</b> and <b>${escapeHtml(userName())}</b> live<span class="rph-subtitle-extra"> · saved to this chat</span></div>
             </div>
         </div>
 
@@ -608,6 +612,14 @@ function renderEditor(state, ui) {
             <pre class="rph-preview-text"></pre>
         </details>
     </div>`;
+}
+
+const FIELD_SIZING = typeof CSS !== 'undefined' && CSS.supports?.('field-sizing', 'content');
+
+function autosize(el) {
+    if (FIELD_SIZING || !el) return;
+    el.style.height = 'auto';
+    if (el.scrollHeight) el.style.height = `${el.scrollHeight + 2}px`;
 }
 
 function isNarrow() {
@@ -664,6 +676,7 @@ async function openEditor() {
     const rerender = () => {
         const scroll = root.closest('.popup-content').scrollTop();
         root.html(renderEditor(state, ui));
+        root.find('.rph-room-details').each((_, el) => autosize(el));
         refreshPreview();
         root.closest('.popup-content').scrollTop(scroll);
     };
@@ -702,6 +715,7 @@ async function openEditor() {
         if (ui.collapsed.has(id)) ui.collapsed.delete(id); else ui.collapsed.add(id);
         cardOf(e.currentTarget).toggleClass('rph-collapsed', ui.collapsed.has(id));
         $(e.currentTarget).attr('aria-expanded', String(!ui.collapsed.has(id)));
+        cardOf(e.currentTarget).find('.rph-room-details').each((_, el) => autosize(el));
     });
     root.on('keydown', '.rph-home-head', e => {
         if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -716,12 +730,13 @@ async function openEditor() {
         if (!home?.rooms[index]) return;
         const isName = $(e.target).hasClass('rph-room-name');
         home.rooms[index][isName ? 'name' : 'details'] = e.target.value;
-        if (isName) row.find('.rph-room-icon i').attr('class', `fa-solid ${roomIcon(e.target.value)}`);
+        if (isName) row.find('.rph-room-icon i').first().attr('class', `fa-solid ${roomIcon(e.target.value)}`);
+        else autosize(e.target);
         refreshPreview();
     });
     root.on('change', '.rph-room-name', e => refreshHead(e.target));
     root.on('keydown', '.rph-room-name, .rph-room-details', e => {
-        if (e.key !== 'Enter') return;
+        if (e.key !== 'Enter' || e.shiftKey) return;
         e.preventDefault();
         const row = $(e.target).closest('.rph-room');
         if ($(e.target).hasClass('rph-room-name')) {
@@ -912,13 +927,17 @@ async function openEditor() {
     rerender();
 
     const chatId = context.getCurrentChatId();
-    const result = await context.callGenericPopup(root, context.POPUP_TYPE.CONFIRM, '', {
+    const popup = new context.Popup(root, context.POPUP_TYPE.CONFIRM, '', {
         wide: true,
         large: true,
         allowVerticalScrolling: true,
         okButton: 'Save',
         cancelButton: 'Cancel',
     });
+    popup.dlg.classList.add('rph-popup');
+    const showing = popup.show();
+    root.find('.rph-room-details').each((_, el) => autosize(el));
+    const result = await showing;
 
     if (result !== context.POPUP_RESULT.AFFIRMATIVE) return;
     if (ctx().getCurrentChatId() !== chatId) {
