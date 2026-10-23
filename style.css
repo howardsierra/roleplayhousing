@@ -1,0 +1,172 @@
+.rph-root {
+    --rph-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    --rph-card: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.25));
+    --rph-accent: var(--SmartThemeQuoteColor, #c9a227);
+    text-align: left;
+}
+
+.rph-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rph-editor h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rph-editor label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9em;
+}
+
+.rph-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.rph-toolbar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.rph-homes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rph-home {
+    border: 1px solid var(--rph-border);
+    border-left: 3px solid var(--rph-accent);
+    border-radius: 8px;
+    background: var(--rph-card);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rph-home-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rph-home-header .rph-owner {
+    flex: 1;
+    font-weight: bold;
+    margin: 0;
+}
+
+.rph-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.rph-grid .rph-span {
+    grid-column: 1 / -1;
+}
+
+.rph-section-title {
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.rph-rooms {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rph-room {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) 3fr auto;
+    gap: 4px;
+    align-items: center;
+}
+
+.rph-room .text_pole {
+    margin: 0;
+}
+
+.rph-generate {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    border-top: 1px dashed var(--rph-border);
+    padding-top: 8px;
+}
+
+.rph-generate .rph-brief {
+    flex: 1;
+    margin: 0;
+}
+
+.rph-room-add {
+    align-self: flex-start;
+}
+
+.rph-badge {
+    font-size: 0.75em;
+    padding: 1px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--rph-border);
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.rph-badge-card {
+    border-color: var(--rph-accent);
+    color: var(--rph-accent);
+}
+
+.rph-empty {
+    opacity: 0.6;
+    font-style: italic;
+    padding: 4px 0;
+}
+
+.rph-preview pre {
+    white-space: pre-wrap;
+    font-size: 0.85em;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--rph-border);
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.menu_button.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+    .rph-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rph-room {
+        grid-template-columns: 1fr auto;
+    }
+
+    .rph-room .rph-room-details {
+        grid-column: 1 / 2;
+    }
+
+    .rph-generate {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

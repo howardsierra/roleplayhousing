@@ -1,0 +1,71 @@
+<div class="rph-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Roleplay Housing</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="flex-container">
+                <div id="rph_open" class="menu_button menu_button_icon">
+                    <i class="fa-solid fa-house-chimney"></i>
+                    <span>Open housing editor</span>
+                </div>
+            </div>
+
+            <label class="checkbox_label" for="rph_enabled">
+                <input id="rph_enabled" type="checkbox" />
+                <span>Inject housing into the prompt</span>
+            </label>
+
+            <label for="rph_auto_detect">When a chat has no housing yet</label>
+            <select id="rph_auto_detect" class="text_pole">
+                <option value="auto">Read the card automatically</option>
+                <option value="ask">Ask before reading the card</option>
+                <option value="off">Do nothing</option>
+            </select>
+            <small>Housing found in the character card (or your persona) fills in automatically. You can edit it afterwards.</small>
+
+            <hr />
+
+            <label for="rph_position">Injection position</label>
+            <select id="rph_position" class="text_pole">
+                <option value="0">After the story string (main prompt)</option>
+                <option value="1">In chat, at depth</option>
+                <option value="2">Before the story string</option>
+            </select>
+
+            <div class="flex-container">
+                <div class="flex1">
+                    <label for="rph_depth">Depth</label>
+                    <input id="rph_depth" class="text_pole" type="number" min="0" max="999" />
+                </div>
+                <div class="flex1">
+                    <label for="rph_role">Role</label>
+                    <select id="rph_role" class="text_pole">
+                        <option value="0">System</option>
+                        <option value="1">User</option>
+                        <option value="2">Assistant</option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="rph_template">Prompt template <small>(<code>{{housing}}</code> is replaced with the housing block)</small></label>
+            <textarea id="rph_template" class="text_pole textarea_compact" rows="3"></textarea>
+
+            <label class="checkbox_label" for="rph_include_rooms">
+                <input id="rph_include_rooms" type="checkbox" />
+                <span>Include room-by-room layout</span>
+            </label>
+
+            <label for="rph_response_length">Max tokens for card reading / generation</label>
+            <input id="rph_response_length" class="text_pole" type="number" min="200" max="8000" step="50" />
+
+            <div class="flex-container">
+                <div id="rph_reset" class="menu_button menu_button_icon">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset settings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
